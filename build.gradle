@@ -21,7 +21,12 @@ install {
 uploadArchives {
     repositories {
         mavenDeployer {
-            repository(url: "file://~/.m2/")
+            repository(url: "http://nexus:8081/nexus/content/repositories/releases") {
+                authentication(userName: nexusUser, password: nexusPassword)
+            }
+            snapshotRepository(url: "http://nexus:8081/nexus/content/repositories/snapshots") {
+                authentication(userName: nexusUser, password: nexusPassword)
+            }
             pom.version = '0.0.1-SNAPSHOT'
             pom.artifactId = 'gdpr-consent-framework'
             pom.groupId = 'com.yieldlab'
