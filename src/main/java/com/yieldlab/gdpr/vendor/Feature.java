@@ -1,4 +1,4 @@
-package com.iab.gdpr.vendor;
+package com.yieldlab.gdpr.vendor;
 
 import java.util.Objects;
 

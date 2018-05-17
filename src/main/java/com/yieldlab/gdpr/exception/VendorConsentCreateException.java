@@ -1,4 +1,4 @@
-package com.iab.gdpr.exception;
+package com.yieldlab.gdpr.exception;
 
 public class VendorConsentCreateException extends VendorConsentException {
     public VendorConsentCreateException(String message, Throwable cause) {

@@ -1,4 +1,4 @@
-package com.iab.gdpr.util;
+package com.yieldlab.gdpr.util;
 
 import static java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 import static org.junit.Assert.assertFalse;
@@ -10,7 +10,7 @@ import java.time.Instant;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import com.iab.gdpr.GdprConsent;
+import com.yieldlab.gdpr.GdprConsent;
 
 public class GdprSwitchTest {
 

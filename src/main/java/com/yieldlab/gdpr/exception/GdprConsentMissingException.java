@@ -1,4 +1,4 @@
-package com.iab.gdpr.exception;
+package com.yieldlab.gdpr.exception;
 
 public class GdprConsentMissingException extends GdprException {
     public GdprConsentMissingException(String message) {

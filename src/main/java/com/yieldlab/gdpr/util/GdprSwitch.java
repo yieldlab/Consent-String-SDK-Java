@@ -1,4 +1,4 @@
-package com.iab.gdpr.util;
+package com.yieldlab.gdpr.util;
 
 import static java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 
@@ -6,7 +6,7 @@ import java.time.Instant;
 import java.util.Optional;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.iab.gdpr.GdprConsent;
+import com.yieldlab.gdpr.GdprConsent;
 
 public class GdprSwitch {
 

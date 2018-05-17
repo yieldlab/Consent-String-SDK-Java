@@ -1,4 +1,4 @@
-package com.iab.gdpr;
+package com.yieldlab.gdpr;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -9,7 +9,7 @@ import java.time.Instant;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import com.iab.gdpr.exception.VendorConsentException;
+import com.yieldlab.gdpr.exception.VendorConsentException;
 
 public class GdprConsentTest {
     @Test

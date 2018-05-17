@@ -1,4 +1,4 @@
-package com.iab.gdpr.exception;
+package com.yieldlab.gdpr.exception;
 
 public class GdprException extends RuntimeException {
     public GdprException(String message, Throwable cause) {

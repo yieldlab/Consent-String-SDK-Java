@@ -1,4 +1,4 @@
-package com.iab.gdpr;
+package com.yieldlab.gdpr;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
@@ -10,10 +10,10 @@ import java.util.Base64.Encoder;
 import java.util.List;
 import java.util.Objects;
 
-import com.iab.gdpr.exception.GdprException;
-import com.iab.gdpr.exception.VendorConsentCreateException;
-import com.iab.gdpr.exception.VendorConsentException;
-import com.iab.gdpr.exception.VendorConsentParseException;
+import com.yieldlab.gdpr.exception.GdprException;
+import com.yieldlab.gdpr.exception.VendorConsentCreateException;
+import com.yieldlab.gdpr.exception.VendorConsentException;
+import com.yieldlab.gdpr.exception.VendorConsentParseException;
 
 /**
  * Copied from https://github.com/InteractiveAdvertisingBureau/Consent-String-SDK-Java and modified
