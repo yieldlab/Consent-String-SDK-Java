@@ -1,6 +1,35 @@
 package com.yieldlab.gdpr;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static com.yieldlab.gdpr.GdprConstants.CMP_ID_OFFSET;
+import static com.yieldlab.gdpr.GdprConstants.CMP_ID_SIZE;
+import static com.yieldlab.gdpr.GdprConstants.CMP_VERSION_OFFSET;
+import static com.yieldlab.gdpr.GdprConstants.CMP_VERSION_SIZE;
+import static com.yieldlab.gdpr.GdprConstants.CONSENT_LANGUAGE_OFFSET;
+import static com.yieldlab.gdpr.GdprConstants.CONSENT_LANGUAGE_SIZE;
+import static com.yieldlab.gdpr.GdprConstants.CONSENT_SCREEN_SIZE;
+import static com.yieldlab.gdpr.GdprConstants.CONSENT_SCREEN_SIZE_OFFSET;
+import static com.yieldlab.gdpr.GdprConstants.CREATED_BIT_OFFSET;
+import static com.yieldlab.gdpr.GdprConstants.CREATED_BIT_SIZE;
+import static com.yieldlab.gdpr.GdprConstants.DEFAULT_CONSENT_OFFSET;
+import static com.yieldlab.gdpr.GdprConstants.ENCODING_TYPE_OFFSET;
+import static com.yieldlab.gdpr.GdprConstants.ENCODING_TYPE_SIZE;
+import static com.yieldlab.gdpr.GdprConstants.MAX_VENDOR_ID_OFFSET;
+import static com.yieldlab.gdpr.GdprConstants.MAX_VENDOR_ID_SIZE;
+import static com.yieldlab.gdpr.GdprConstants.NUM_ENTRIES_OFFSET;
+import static com.yieldlab.gdpr.GdprConstants.NUM_ENTRIES_SIZE;
+import static com.yieldlab.gdpr.GdprConstants.PURPOSES_OFFSET;
+import static com.yieldlab.gdpr.GdprConstants.PURPOSES_SIZE;
+import static com.yieldlab.gdpr.GdprConstants.RANGE_ENTRY_OFFSET;
+import static com.yieldlab.gdpr.GdprConstants.UPDATED_BIT_OFFSET;
+import static com.yieldlab.gdpr.GdprConstants.UPDATED_BIT_SIZE;
+import static com.yieldlab.gdpr.GdprConstants.VENDOR_BITFIELD_OFFSET;
+import static com.yieldlab.gdpr.GdprConstants.VENDOR_ENCODING_RANGE;
+import static com.yieldlab.gdpr.GdprConstants.VENDOR_ID_SIZE;
+import static com.yieldlab.gdpr.GdprConstants.VENDOR_LIST_VERSION_OFFSET;
+import static com.yieldlab.gdpr.GdprConstants.VENDOR_LIST_VERSION_SIZE;
+import static com.yieldlab.gdpr.GdprConstants.VERSION_BIT_OFFSET;
+import static com.yieldlab.gdpr.GdprConstants.VERSION_BIT_SIZE;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -9,14 +38,15 @@ import java.util.Base64.Decoder;
 import java.util.Base64.Encoder;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.IntStream;
 
 import com.yieldlab.gdpr.exception.GdprException;
-import com.yieldlab.gdpr.exception.VendorConsentCreateException;
 import com.yieldlab.gdpr.exception.VendorConsentException;
 import com.yieldlab.gdpr.exception.VendorConsentParseException;
+import com.yieldlab.gdpr.util.ConsentStringParser;
 
 /**
- * Copied from https://github.com/InteractiveAdvertisingBureau/Consent-String-SDK-Java and modified
+ * Forked from https://github.com/InteractiveAdvertisingBureau/Consent-String-SDK-Java and modified
  *
  * This class implements a parser for the IAB consent string as specified in
  * https://github.com/InteractiveAdvertisingBureau/GDPR-Transparency-and-Consent-Framework/blob/master/
@@ -25,39 +55,9 @@ import com.yieldlab.gdpr.exception.VendorConsentParseException;
  *
  */
 public class GdprConsent {
-
-    private static final int VENDOR_ENCODING_RANGE = 1;
-
-    private static final int VERSION_BIT_OFFSET = 0;
-    private static final int VERSION_BIT_SIZE = 6;
-    private static final int CREATED_BIT_OFFSET = 6;
-    private static final int CREATED_BIT_SIZE = 36;
-    private static final int UPDATED_BIT_OFFSET = 42;
-    private static final int UPDATED_BIT_SIZE = 36;
-    private static final int CMP_ID_OFFSET = 78;
-    private static final int CMP_ID_SIZE = 12;
-    private static final int CMP_VERSION_OFFSET = 90;
-    private static final int CMP_VERSION_SIZE = 12;
-    private static final int CONSENT_SCREEN_SIZE_OFFSET = 102;
-    private static final int CONSENT_SCREEN_SIZE = 6;
-    private static final int CONSENT_LANGUAGE_OFFSET = 108;
-    private static final int CONSENT_LANGUAGE_SIZE = 12;
-    private static final int VENDOR_LIST_VERSION_OFFSET = 120;
-    private static final int VENDOR_LIST_VERSION_SIZE = 12;
-    private static final int PURPOSES_OFFSET = 132;
-    private static final int PURPOSES_SIZE = 24;
-    private static final int MAX_VENDOR_ID_OFFSET = 156;
-    private static final int MAX_VENDOR_ID_SIZE = 16;
-    private static final int ENCODING_TYPE_OFFSET = 172;
-    private static final int ENCODING_TYPE_SIZE = 1;
-    private static final int VENDOR_BITFIELD_OFFSET = 173;
-    private static final int DEFAULT_CONSENT_OFFSET = 173;
-    private static final int NUM_ENTRIES_OFFSET = 174;
-    private static final int NUM_ENTRIES_SIZE = 12;
-    private static final int RANGE_ENTRY_OFFSET = 186;
-    private static final int VENDOR_ID_SIZE = 16;
     private static Decoder decoder = Base64.getUrlDecoder();
-    private static Encoder encoder = Base64.getUrlEncoder();
+    // As per the GDPR framework guidelines padding should be ommitted
+    private static Encoder encoder = Base64.getUrlEncoder().withoutPadding();
     private final Bits bits;
     // fields contained in the consent string
     private final int version;
@@ -68,76 +68,18 @@ public class GdprConsent {
     private final int consentScreenID;
     private final String consentLanguage;
     private final int vendorListVersion;
-    private final int maxVendorSize;
+    private final int maxVendorId;
     private final int vendorEncodingType;
-    private final List<Boolean> allowedPurposes = new ArrayList<>();
+    private final List<Boolean> allowedPurposes;
+    // only used when bitfield is enabled
+    private List<Boolean> bitfield;
     // only used when range entry is enabled
     private boolean defaultConsent;
     private List<RangeEntry> rangeEntries;
     private String consentString;
-    private List<Integer> integerPurposes = null;
+    private List<Integer> integerPurposes;
 
-    /**
-     * Constructor.
-     *
-     * @param consentString
-     *            (required). The binary user consent data encoded as url and filename safe base64 string
-     *
-     * @throws VendorConsentException
-     *             if the consent string cannot be parsed
-     */
-    private GdprConsent(String consentString) throws VendorConsentException {
-        this(decoder.decode(consentString));
-        this.consentString = consentString;
-    }
-
-    /**
-     * Constructor
-     *
-     * @param bytes:
-     *            the byte string encoding the user consent data
-     * @throws VendorConsentException
-     *             when the consent string cannot be parsed
-     */
-    private GdprConsent(byte[] bytes) throws VendorConsentException {
-        this.bits = new Bits(bytes);
-        // begin parsing
-
-        this.version = bits.getInt(VERSION_BIT_OFFSET, VERSION_BIT_SIZE);
-        this.consentRecordCreated = bits.getInstantFromEpochDeciseconds(CREATED_BIT_OFFSET, CREATED_BIT_SIZE);
-        this.consentRecordLastUpdated = bits.getInstantFromEpochDeciseconds(UPDATED_BIT_OFFSET, UPDATED_BIT_SIZE);
-        this.cmpID = bits.getInt(CMP_ID_OFFSET, CMP_ID_SIZE);
-        this.cmpVersion = bits.getInt(CMP_VERSION_OFFSET, CMP_VERSION_SIZE);
-        this.consentScreenID = bits.getInt(CONSENT_SCREEN_SIZE_OFFSET, CONSENT_SCREEN_SIZE);
-        this.consentLanguage = bits.getSixBitString(CONSENT_LANGUAGE_OFFSET, CONSENT_LANGUAGE_SIZE);
-        this.vendorListVersion = bits.getInt(VENDOR_LIST_VERSION_OFFSET, VENDOR_LIST_VERSION_SIZE);
-        this.maxVendorSize = bits.getInt(MAX_VENDOR_ID_OFFSET, MAX_VENDOR_ID_SIZE);
-        this.vendorEncodingType = bits.getInt(ENCODING_TYPE_OFFSET, ENCODING_TYPE_SIZE);
-        for (int i = PURPOSES_OFFSET, ii = PURPOSES_OFFSET + PURPOSES_SIZE; i < ii; i++) {
-            allowedPurposes.add(bits.getBit(i));
-        }
-        if (vendorEncodingType == VENDOR_ENCODING_RANGE) {
-            this.rangeEntries = new ArrayList<>();
-            this.defaultConsent = bits.getBit(DEFAULT_CONSENT_OFFSET);
-            int numEntries = bits.getInt(NUM_ENTRIES_OFFSET, NUM_ENTRIES_SIZE);
-            for (int i = 0, currentOffset = RANGE_ENTRY_OFFSET + 1; i < numEntries; i++, currentOffset++) {
-                boolean range = bits.getBit(currentOffset - 1);
-                if (range) {
-                    int startVendorId = bits.getInt(currentOffset, VENDOR_ID_SIZE);
-                    currentOffset += VENDOR_ID_SIZE;
-                    int endVendorId = bits.getInt(currentOffset, VENDOR_ID_SIZE);
-                    currentOffset += VENDOR_ID_SIZE;
-                    rangeEntries.add(new RangeEntry(startVendorId, endVendorId));
-                } else {
-                    int vendorId = bits.getInt(currentOffset, VENDOR_ID_SIZE);
-                    currentOffset += VENDOR_ID_SIZE;
-                    rangeEntries.add(new RangeEntry(vendorId));
-                }
-            }
-        }
-    }
-
-    public GdprConsent(Builder builder) throws VendorConsentException {
+    private GdprConsent(Builder builder) throws VendorConsentException {
         this.version = builder.version;
         this.consentRecordCreated = builder.consentRecordCreated;
         this.consentRecordLastUpdated = builder.consentRecordLastUpdated;
@@ -146,22 +88,40 @@ public class GdprConsent {
         this.consentScreenID = builder.consentScreenID;
         this.consentLanguage = builder.consentLanguage;
         this.vendorListVersion = builder.vendorListVersion;
-        this.maxVendorSize = builder.maxVendorSize;
+        this.maxVendorId = builder.maxVendorId;
         this.vendorEncodingType = builder.vendorEncodingType;
-        this.allowedPurposes.addAll(builder.allowedPurposes);
-        this.defaultConsent = builder.defaultConsent;
-        this.rangeEntries = builder.rangeEntries;
-        this.integerPurposes = builder.integerPurposes;
+        this.allowedPurposes = builder.allowedPurposes;
 
-        int rangeEntrySize = 0;
-        for (RangeEntry entry : rangeEntries) {
-            if (entry.maxVendorId == entry.minVendorId) {
-                rangeEntrySize += VENDOR_ID_SIZE;
-            } else {
-                rangeEntrySize += VENDOR_ID_SIZE * 2;
+        if (this.vendorEncodingType == VENDOR_ENCODING_RANGE) {
+            this.defaultConsent = builder.defaultConsent;
+            this.rangeEntries = builder.rangeEntries;
+        } else {
+            this.bitfield = new ArrayList<>(this.maxVendorId);
+            IntStream.range(0, this.maxVendorId).forEach(i -> this.bitfield.add(false));
+            for (int vendorId : builder.vendorsBitField) {
+                this.bitfield.set(vendorId - VENDOR_BITFIELD_OFFSET, true);
             }
         }
-        this.bits = new Bits(new byte[(RANGE_ENTRY_OFFSET + rangeEntrySize) / 8 + 1]);
+
+        this.integerPurposes = builder.integerPurposes;
+
+        if (this.vendorEncodingType == VENDOR_ENCODING_RANGE) {
+            int rangeEntrySize = 0;
+            for (RangeEntry entry : rangeEntries) {
+                if (entry.maxVendorId == entry.minVendorId) {
+                    rangeEntrySize += VENDOR_ID_SIZE;
+                } else {
+                    rangeEntrySize += VENDOR_ID_SIZE * 2;
+                }
+            }
+            int bitSize = RANGE_ENTRY_OFFSET + rangeEntrySize;
+            boolean bitsFit = (bitSize % 8) == 0;
+            this.bits = new Bits(new byte[bitSize / 8 + (bitsFit ? 0 : 1)]);
+        } else {
+            int bitSize = VENDOR_BITFIELD_OFFSET + this.maxVendorId - 1;
+            boolean bitsFit = (bitSize % 8) == 0;
+            this.bits = new Bits(new byte[(bitSize / 8 + (bitsFit ? 0 : 1))]);
+        }
 
         bits.setInt(VERSION_BIT_OFFSET, VERSION_BIT_SIZE, this.version);
         bits.setInstantToEpochDeciseconds(CREATED_BIT_OFFSET, CREATED_BIT_SIZE, this.consentRecordCreated);
@@ -183,7 +143,7 @@ public class GdprConsent {
             }
         }
 
-        bits.setInt(MAX_VENDOR_ID_OFFSET, MAX_VENDOR_ID_SIZE, this.maxVendorSize);
+        bits.setInt(MAX_VENDOR_ID_OFFSET, MAX_VENDOR_ID_SIZE, this.maxVendorId);
         bits.setInt(ENCODING_TYPE_OFFSET, ENCODING_TYPE_SIZE, this.vendorEncodingType);
 
         if (vendorEncodingType == VENDOR_ENCODING_RANGE) {
@@ -209,13 +169,36 @@ public class GdprConsent {
                     currentOffset += VENDOR_ID_SIZE;
                 }
             }
+        } else {
+            int bitfieldOffset = VENDOR_BITFIELD_OFFSET;
+            for (boolean vendorBit : bitfield) {
+                if (vendorBit) {
+                    bits.setBit(bitfieldOffset);
+                }
+                ++bitfieldOffset;
+            }
         }
         this.consentString = encoder.encodeToString(bits.toByteArray());
     }
 
+    /**
+     * Constructor.
+     *
+     * @param consentString
+     *            (required). The binary user consent data encoded as url and filename safe base64 string
+     *
+     * @throws GdprException
+     *             if the consent string cannot be parsed
+     */
     public static GdprConsent fromBase64String(String consentString) throws GdprException {
         try {
-            return isNullOrEmpty(consentString) ? null : new GdprConsent(consentString);
+            if (isNullOrEmpty(consentString)) {
+                throw new VendorConsentParseException("Consent String is empty or null");
+            } else {
+                byte[] consentAsBytes = decoder.decode(consentString);
+                ConsentStringParser parser = new ConsentStringParser(consentAsBytes);
+                return parser.parse();
+            }
         } catch (VendorConsentException e) {
             throw new GdprException("Error parsing IAB Consent String", e.getCause());
         }
@@ -282,8 +265,8 @@ public class GdprConsent {
         return consentLanguage;
     }
 
-    public int getMaxVendorSize() {
-        return maxVendorSize;
+    public int getMaxVendorId() {
+        return maxVendorId;
     }
 
     public boolean isDefaultConsent() {
@@ -367,7 +350,10 @@ public class GdprConsent {
             boolean present = findVendorIdInRange(vendorId);
             return present != defaultConsent;
         } else {
-            return bits.getBit(VENDOR_BITFIELD_OFFSET + vendorId - 1);
+            if (vendorId > 0 && vendorId <= maxVendorId) {
+                return bitfield.get(vendorId - 1);
+            }
+            return false;
         }
     }
 
@@ -380,7 +366,7 @@ public class GdprConsent {
         GdprConsent consent = (GdprConsent) o;
         return version == consent.version && cmpID == consent.cmpID && cmpVersion == consent.cmpVersion
                 && consentScreenID == consent.consentScreenID && vendorListVersion == consent.vendorListVersion
-                && maxVendorSize == consent.maxVendorSize && vendorEncodingType == consent.vendorEncodingType
+                && maxVendorId == consent.maxVendorId && vendorEncodingType == consent.vendorEncodingType
                 && defaultConsent == consent.defaultConsent && Objects.equals(bits, consent.bits)
                 && Objects.equals(consentRecordCreated, consent.consentRecordCreated)
                 && Objects.equals(consentRecordLastUpdated, consent.consentRecordLastUpdated)
@@ -395,7 +381,7 @@ public class GdprConsent {
     public int hashCode() {
 
         return Objects.hash(bits, version, consentRecordCreated, consentRecordLastUpdated, cmpID, cmpVersion,
-                consentScreenID, consentLanguage, vendorListVersion, maxVendorSize, vendorEncodingType, allowedPurposes,
+                consentScreenID, consentLanguage, vendorListVersion, maxVendorId, vendorEncodingType, allowedPurposes,
                 consentString, rangeEntries, defaultConsent, integerPurposes);
     }
 
@@ -404,8 +390,8 @@ public class GdprConsent {
         return "GdprConsent{" + "bits=" + bits + ", version=" + version + ", consentRecordCreated="
                 + consentRecordCreated + ", consentRecordLastUpdated=" + consentRecordLastUpdated + ", cmpID=" + cmpID
                 + ", cmpVersion=" + cmpVersion + ", consentScreenID=" + consentScreenID + ", consentLanguage='"
-                + consentLanguage + '\'' + ", vendorListVersion=" + vendorListVersion + ", maxVendorSize="
-                + maxVendorSize + ", vendorEncodingType=" + vendorEncodingType + ", allowedPurposes=" + allowedPurposes
+                + consentLanguage + '\'' + ", vendorListVersion=" + vendorListVersion + ", maxVendorId=" + maxVendorId
+                + ", vendorEncodingType=" + vendorEncodingType + ", allowedPurposes=" + allowedPurposes
                 + ", consentString='" + consentString + '\'' + ", rangeEntries=" + rangeEntries + ", defaultConsent="
                 + defaultConsent + ", integerPurposes=" + integerPurposes + '}';
     }
@@ -454,9 +440,11 @@ public class GdprConsent {
         private int consentScreenID;
         private String consentLanguage;
         private int vendorListVersion;
-        private int maxVendorSize;
+        private int maxVendorId;
         private int vendorEncodingType;
         private List<Boolean> allowedPurposes = new ArrayList<>(PURPOSES_SIZE);
+        // only used when bitfield is enabled
+        private List<Integer> vendorsBitField;
         // only used when range entry is enabled
         private List<RangeEntry> rangeEntries;
         private boolean defaultConsent;
@@ -502,8 +490,8 @@ public class GdprConsent {
             return this;
         }
 
-        public Builder withMaxVendorSize(int maxVendorSize) {
-            this.maxVendorSize = maxVendorSize;
+        public Builder withMaxVendorId(int maxVendorId) {
+            this.maxVendorId = maxVendorId;
             return this;
         }
 
@@ -523,6 +511,11 @@ public class GdprConsent {
             return this;
         }
 
+        public Builder withBitField(List<Integer> vendorsInBitField) {
+            this.vendorsBitField = vendorsInBitField;
+            return this;
+        }
+
         public Builder withRangeEntries(List<RangeEntry> rangeEntries) {
             this.rangeEntries = rangeEntries;
             return this;
@@ -535,272 +528,6 @@ public class GdprConsent {
 
         public GdprConsent build() {
             return new GdprConsent(this);
-        }
-    }
-
-    // since java.util.BitSet is inappropiate to use here--as it reversed the bit order of the consent string--we
-    // implement our own bitwise operations here.
-    private static class Bits {
-        // big endian
-        private static final byte[] bytePows = { -128, 64, 32, 16, 8, 4, 2, 1 };
-        private final byte[] bytes;
-
-        public Bits(byte[] b) {
-            this.bytes = b;
-        }
-
-        /**
-         *
-         * @param index:
-         *            the nth number bit to get from the bit string
-         * @return boolean bit, true if the bit is switched to 1, false otherwise
-         */
-        public boolean getBit(int index) {
-            int byteIndex = index / 8;
-            int bitExact = index % 8;
-            byte b = bytes[byteIndex];
-            return (b & bytePows[bitExact]) != 0;
-        }
-
-        /**
-         *
-         * @param index:
-         *            set the nth number bit from the bit string
-         */
-        public void setBit(int index) {
-            int byteIndex = index / 8;
-            int shift = (byteIndex + 1) * 8 - index - 1;
-            bytes[byteIndex] |= 1 << shift;
-        }
-
-        /**
-         *
-         * @param index:
-         *            unset the nth number bit from the bit string
-         */
-        public void unsetBit(int index) {
-            int byteIndex = index / 8;
-            int shift = (byteIndex + 1) * 8 - index - 1;
-            bytes[byteIndex] &= ~(1 << shift);
-        }
-
-        /**
-         * interprets n number of bits as a big endiant int
-         *
-         * @param startInclusive:
-         *            the nth to begin interpreting from
-         * @param size:
-         *            the number of bits to interpret
-         * @return
-         * @throws VendorConsentException
-         *             when the bits cannot fit in an int sized field
-         */
-        public int getInt(int startInclusive, int size) throws VendorConsentException {
-            if (size > Integer.SIZE) {
-                throw new VendorConsentParseException("can't fit bit range in int " + size);
-            }
-            int val = 0;
-            int sigMask = 1;
-            int sigIndex = size - 1;
-
-            for (int i = 0; i < size; i++) {
-                if (getBit(startInclusive + i)) {
-                    val += (sigMask << sigIndex);
-                }
-                sigIndex--;
-            }
-            return val;
-        }
-
-        /**
-         * Writes an integer value into a bit array of given size
-         *
-         * @param startInclusive:
-         *            the nth to begin writing to
-         * @param size:
-         *            the number of bits available to write
-         * @param to:
-         *            the integer to write out
-         * @throws VendorConsentException
-         *             when the bits cannot fit into the provided size
-         */
-        public void setInt(int startInclusive, int size, int to) throws VendorConsentException {
-            if (size > Integer.SIZE || to > maxOfSize(size) || to < 0) {
-                // TODO check againt the size
-                throw new VendorConsentCreateException("can't fit integer into bit range of size" + size);
-            }
-            for (int i = size - 1; i >= 0; i--) {
-                int index = startInclusive + i;
-                int byteIndex = index / 8;
-                int shift = (byteIndex + 1) * 8 - index - 1;
-                bytes[byteIndex] |= (to % 2) << shift;
-                to /= 2;
-            }
-        }
-
-        /**
-         * interprets n bits as a big endian long
-         *
-         * @param startInclusive:
-         *            the nth to begin interpreting from
-         * @param size:the
-         *            number of bits to interpret
-         * @return the long value create by interpretation of provided bits
-         * @throws VendorConsentException
-         *             when the bits cannot fit in an int sized field
-         */
-        public long getLong(int startInclusive, int size) throws VendorConsentException {
-            if (size > Long.SIZE) {
-                throw new VendorConsentParseException("can't fit bit range in long: " + size);
-            }
-            long val = 0;
-            long sigMask = 1;
-            int sigIndex = size - 1;
-
-            for (int i = 0; i < size; i++) {
-                if (getBit(startInclusive + i)) {
-                    val += (sigMask << sigIndex);
-                }
-                sigIndex--;
-            }
-            return val;
-        }
-
-        /**
-         * Writes a long value into a bit array of given size
-         *
-         * @param startInclusive:
-         *            the nth to begin writing to
-         * @param size:
-         *            the number of bits available to write
-         * @param to:
-         *            the long number to write out
-         * @throws VendorConsentException
-         *             when the bits cannot fit into the provided size
-         */
-        public void setLong(int startInclusive, int size, long to) throws VendorConsentException {
-            if (size > Long.SIZE || to > maxOfSize(size) || to < 0) {
-                // TODO check againt the size
-                throw new VendorConsentCreateException("can't fit long into bit range of size " + size);
-            }
-
-            for (int i = size - 1; i >= 0; i--) {
-                int index = startInclusive + i;
-                int byteIndex = index / 8;
-                int shift = (byteIndex + 1) * 8 - index - 1;
-                bytes[byteIndex] |= (to % 2) << shift;
-                to /= 2;
-            }
-        }
-
-        /**
-         * returns an {@link Instant} derived from interpreting the given interval on the bit string as long
-         * representing the number of demiseconds from the unix epoch
-         *
-         * @param startInclusive:
-         *            the bit from which to begin interpreting
-         * @param size:
-         *            the number of bits to interpret
-         * @return
-         * @throws VendorConsentException
-         *             when the number of bits requested cannot fit in a long
-         */
-        public Instant getInstantFromEpochDeciseconds(int startInclusive, int size) throws VendorConsentException {
-            long epochDemi = getLong(startInclusive, size);
-            return Instant.ofEpochMilli(epochDemi * 100);
-        }
-
-        public void setInstantToEpochDeciseconds(int startInclusive, int size, Instant instant)
-                throws VendorConsentException {
-            setLong(startInclusive, size, instant.toEpochMilli() / 100);
-        }
-
-        /**
-         * @return the number of bits in the bit string
-         *
-         */
-        public int length() {
-            return bytes.length * 8;
-        }
-
-        /**
-         * This method interprets the given interval in the bit string as a series of six bit characters, where 0=A and
-         * 26=Z
-         *
-         * @param startInclusive:
-         *            the nth bit in the bitstring from which to start the interpretation
-         * @param size:
-         *            the number of bits to include in the string
-         * @return the string given by the above interpretation
-         * @throws VendorConsentException
-         *             when the requested interval is not a multiple of six
-         */
-        public String getSixBitString(int startInclusive, int size) throws VendorConsentException {
-            if (size % 6 != 0) {
-                throw new VendorConsentCreateException("string bit length must be multiple of six: " + size);
-            }
-            int charNum = size / 6;
-            StringBuilder val = new StringBuilder();
-            for (int i = 0; i < charNum; i++) {
-                int charCode = getInt(startInclusive + (i * 6), 6) + 65;
-                val.append((char) charCode);
-            }
-            return val.toString().toUpperCase();
-        }
-
-        /**
-         * This method interprets characters, as 0=A and 26=Z and writes to the given interval in the bit string as a
-         * series of six bits
-         *
-         * @param startInclusive:
-         *            the nth bit in the bitstring from which to start writing
-         * @param size:
-         *            the size of the bitstring
-         * @param to:
-         *            the string given by the above interpretation
-         * @throws VendorConsentException
-         *             when the requested interval is not a multiple of six
-         */
-        public void setSixBitString(int startInclusive, int size, String to) throws VendorConsentException {
-            if (size % 6 != 0 || size / 6 != to.length()) {
-                throw new VendorConsentCreateException(
-                        "bit array size must be multiple of six and equal to 6 times the size of string");
-            }
-            char[] values = to.toCharArray();
-            for (int i = 0; i < values.length; i++) {
-                int charCode = values[i] - 65;
-                setInt(startInclusive + (i * 6), 6, charCode);
-            }
-        }
-
-        /**
-         *
-         * @return a string representation of the byte array passed in the constructor. for example, a bit array of [4]
-         *         yields a String of "0100"
-         */
-        public String getBinaryString() {
-            StringBuilder s = new StringBuilder();
-            int size = length();
-            for (int i = 0; i < size; i++) {
-                if (getBit(i)) {
-                    s.append("1");
-                } else {
-                    s.append("0");
-                }
-            }
-            return s.toString();
-        }
-
-        public byte[] toByteArray() {
-            return bytes;
-        }
-
-        private long maxOfSize(int size) {
-            long max = 0;
-            for (int i = 0; i < size; i++) {
-                max += Math.pow(2, i);
-            }
-            return max;
         }
     }
 }
