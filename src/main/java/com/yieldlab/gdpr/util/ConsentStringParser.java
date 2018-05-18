@@ -33,8 +33,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.yieldlab.gdpr.Bits;
-import com.yieldlab.gdpr.GdprConsent;
 import com.yieldlab.gdpr.GdprConstants;
+import com.yieldlab.gdpr.VendorConsent;
 
 public class ConsentStringParser {
     private Bits bits;
@@ -43,8 +43,8 @@ public class ConsentStringParser {
         this.bits = new Bits(consent);
     }
 
-    public GdprConsent parse() {
-        GdprConsent.Builder builder = new GdprConsent.Builder();
+    public VendorConsent parse() {
+        VendorConsent.Builder builder = new VendorConsent.Builder();
 
                 builder.withVersion(bits.getInt(VERSION_BIT_OFFSET, VERSION_BIT_SIZE));
         builder.withConsentRecordCreatedOn(bits.getInstantFromEpochDeciseconds(CREATED_BIT_OFFSET, CREATED_BIT_SIZE));
@@ -70,7 +70,7 @@ public class ConsentStringParser {
         int vendorEncodingType = bits.getInt(ENCODING_TYPE_OFFSET, ENCODING_TYPE_SIZE);
         builder.withVendorEncodingType(vendorEncodingType);
 
-        List<GdprConsent.RangeEntry> rangeEntries = new ArrayList<>();
+        List<VendorConsent.RangeEntry> rangeEntries = new ArrayList<>();
         if (vendorEncodingType == VENDOR_ENCODING_RANGE) {
             builder.withDefaultConsent(bits.getBit(DEFAULT_CONSENT_OFFSET));
             int numEntries = bits.getInt(NUM_ENTRIES_OFFSET, NUM_ENTRIES_SIZE);
@@ -82,11 +82,11 @@ public class ConsentStringParser {
                     currentOffset += VENDOR_ID_SIZE;
                     int endVendorId = bits.getInt(currentOffset, VENDOR_ID_SIZE);
                     currentOffset += VENDOR_ID_SIZE;
-                    rangeEntries.add(new GdprConsent.RangeEntry(startVendorId, endVendorId));
+                    rangeEntries.add(new VendorConsent.RangeEntry(startVendorId, endVendorId));
                 } else {
                     int vendorId = bits.getInt(currentOffset, VENDOR_ID_SIZE);
                     currentOffset += VENDOR_ID_SIZE;
-                    rangeEntries.add(new GdprConsent.RangeEntry(vendorId));
+                    rangeEntries.add(new VendorConsent.RangeEntry(vendorId));
                 }
             }
             builder.withRangeEntries(rangeEntries);

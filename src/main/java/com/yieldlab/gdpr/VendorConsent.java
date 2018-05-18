@@ -54,7 +54,7 @@ import com.yieldlab.gdpr.util.ConsentStringParser;
  * 20specification%20v1.0a.pdf
  *
  */
-public class GdprConsent {
+public class VendorConsent {
     private static Decoder decoder = Base64.getUrlDecoder();
     // As per the GDPR framework guidelines padding should be ommitted
     private static Encoder encoder = Base64.getUrlEncoder().withoutPadding();
@@ -79,7 +79,7 @@ public class GdprConsent {
     private String consentString;
     private List<Integer> integerPurposes;
 
-    private GdprConsent(Builder builder) throws VendorConsentException {
+    private VendorConsent(Builder builder) throws VendorConsentException {
         this.version = builder.version;
         this.consentRecordCreated = builder.consentRecordCreated;
         this.consentRecordLastUpdated = builder.consentRecordLastUpdated;
@@ -190,7 +190,7 @@ public class GdprConsent {
      * @throws GdprException
      *             if the consent string cannot be parsed
      */
-    public static GdprConsent fromBase64String(String consentString) throws GdprException {
+    public static VendorConsent fromBase64String(String consentString) throws GdprException {
         try {
             if (isNullOrEmpty(consentString)) {
                 throw new VendorConsentParseException("Consent String is empty or null");
@@ -363,7 +363,7 @@ public class GdprConsent {
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
-        GdprConsent consent = (GdprConsent) o;
+        VendorConsent consent = (VendorConsent) o;
         return version == consent.version && cmpID == consent.cmpID && cmpVersion == consent.cmpVersion
                 && consentScreenID == consent.consentScreenID && vendorListVersion == consent.vendorListVersion
                 && maxVendorId == consent.maxVendorId && vendorEncodingType == consent.vendorEncodingType
@@ -387,7 +387,7 @@ public class GdprConsent {
 
     @Override
     public String toString() {
-        return "GdprConsent{" + "bits=" + bits + ", version=" + version + ", consentRecordCreated="
+        return "VendorConsent{" + "bits=" + bits + ", version=" + version + ", consentRecordCreated="
                 + consentRecordCreated + ", consentRecordLastUpdated=" + consentRecordLastUpdated + ", cmpID=" + cmpID
                 + ", cmpVersion=" + cmpVersion + ", consentScreenID=" + consentScreenID + ", consentLanguage='"
                 + consentLanguage + '\'' + ", vendorListVersion=" + vendorListVersion + ", maxVendorId=" + maxVendorId
@@ -526,8 +526,8 @@ public class GdprConsent {
             return this;
         }
 
-        public GdprConsent build() {
-            return new GdprConsent(this);
+        public VendorConsent build() {
+            return new VendorConsent(this);
         }
     }
 }
