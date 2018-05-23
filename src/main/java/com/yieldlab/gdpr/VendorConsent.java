@@ -101,10 +101,10 @@ public class VendorConsent {
             this.bitfield = new ArrayList<>(this.maxVendorId);
             IntStream.range(0, this.maxVendorId).forEach(i -> this.bitfield.add(false));
             for (int vendorId : builder.vendorsBitField) {
-                if (vendorId > maxVendorId) {
-                    throw new VendorConsentCreateException("VendorId in bit field is greater than Max VendorId");
+                if (vendorId > maxVendorId || vendorId < 1) {
+                    throw new VendorConsentCreateException("VendorId in bit field is greater than Max VendorId or less than 1");
                 }
-                this.bitfield.set(vendorId, true);
+                this.bitfield.set(vendorId - 1, true);
             }
         }
 
@@ -288,6 +288,10 @@ public class VendorConsent {
 
     public List<RangeEntry> getRangeEntries() {
         return rangeEntries;
+    }
+
+    public List<Boolean> getBitfield() {
+        return bitfield;
     }
 
     public String getBinaryString() {

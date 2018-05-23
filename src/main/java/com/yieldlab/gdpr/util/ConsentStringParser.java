@@ -116,7 +116,7 @@ public class ConsentStringParser {
                         throw new VendorConsentParseException(
                                 "VendorId provided in the bit field must not be greater than Max VendorId");
                     }
-                    bitField.add(i - GdprConstants.VENDOR_BITFIELD_OFFSET);
+                    bitField.add(i - GdprConstants.VENDOR_BITFIELD_OFFSET + 1);
                 }
             }
             builder.withBitField(bitField);
