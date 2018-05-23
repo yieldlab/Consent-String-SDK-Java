@@ -15,7 +15,7 @@ repositories {
 
 install {
     repositories.mavenInstaller {
-        pom.version = '0.0.3-SNAPSHOT'
+        pom.version = '0.0.3'
         pom.artifactId = 'gdpr-consent-framework'
         pom.groupId = 'com.yieldlab'
     }
@@ -30,7 +30,7 @@ uploadArchives {
             snapshotRepository(url: "http://nexus:8081/nexus/content/repositories/snapshots") {
                 authentication(userName: username, password: password)
             }
-            pom.version = '0.0.3-SNAPSHOT'
+            pom.version = '0.0.3'
             pom.artifactId = 'gdpr-consent-framework'
             pom.groupId = 'com.yieldlab'
         }
@@ -38,7 +38,7 @@ uploadArchives {
 }
 
 jar {
-    version = '0.0.3-SNAPSHOT'
+    version = '0.0.3'
     baseName = 'gdpr-consent-framework'
     group = 'com.yieldlab'
 }
