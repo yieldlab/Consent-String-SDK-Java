@@ -6,6 +6,9 @@ apply plugin: 'maven'
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
+def username = hasProperty('nexusUser') ? nexusUser : System.getenv('nexusUser')
+def password = hasProperty('nexusPassword') ? nexusPassword : System.getenv('nexusPassword')
+
 repositories {
     mavenCentral()
 }
@@ -22,10 +25,10 @@ uploadArchives {
     repositories {
         mavenDeployer {
             repository(url: "http://nexus:8081/nexus/content/repositories/releases") {
-                authentication(userName: nexusUser, password: nexusPassword)
+                authentication(userName: username, password: password)
             }
             snapshotRepository(url: "http://nexus:8081/nexus/content/repositories/snapshots") {
-                authentication(userName: nexusUser, password: nexusPassword)
+                authentication(userName: username, password: password)
             }
             pom.version = '0.0.2'
             pom.artifactId = 'gdpr-consent-framework'
