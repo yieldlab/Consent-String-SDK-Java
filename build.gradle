@@ -1,12 +1,57 @@
 apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
+apply plugin: 'maven'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+def username = hasProperty('nexusUser') ? nexusUser : System.getenv('nexusUser')
+def password = hasProperty('nexusPassword') ? nexusPassword : System.getenv('nexusPassword')
+
 repositories {
     mavenCentral()
 }
 
- dependencies {
-        testCompile (
-            "junit:junit:4.11",
-        )
+install {
+    repositories.mavenInstaller {
+        pom.version = '0.0.2'
+        pom.artifactId = 'gdpr-consent-framework'
+        pom.groupId = 'com.yieldlab'
     }
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository(url: "http://nexus:8081/nexus/content/repositories/releases") {
+                authentication(userName: username, password: password)
+            }
+            snapshotRepository(url: "http://nexus:8081/nexus/content/repositories/snapshots") {
+                authentication(userName: username, password: password)
+            }
+            pom.version = '0.0.2'
+            pom.artifactId = 'gdpr-consent-framework'
+            pom.groupId = 'com.yieldlab'
+        }
+    }
+}
+
+jar {
+    version = '0.0.2'
+    baseName = 'gdpr-consent-framework'
+    group = 'com.yieldlab'
+}
+
+dependencies {
+    testCompile(
+            "junit:junit:4.11",
+            "org.hamcrest:java-hamcrest:2.0.0.0"
+    )
+    compile(
+        "com.fasterxml.jackson.core:jackson-databind:2.8.5",
+        "com.fasterxml.jackson.core:jackson-core:2.8.5",
+        "com.fasterxml.jackson.core:jackson-annotations:2.8.5",
+        "com.google.guava:guava:14.0.1"
+    )
+}
