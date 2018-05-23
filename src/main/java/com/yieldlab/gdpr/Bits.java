@@ -6,6 +6,7 @@ import com.yieldlab.gdpr.exception.VendorConsentCreateException;
 import com.yieldlab.gdpr.exception.VendorConsentException;
 import com.yieldlab.gdpr.exception.VendorConsentParseException;
 
+
 /*
  * since java.util.BitSet is inappropiate to use here--as it reversed the bit order of the consent string
  * implement bitwise operations here
