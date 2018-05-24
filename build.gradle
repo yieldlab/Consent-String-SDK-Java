@@ -21,6 +21,31 @@ install {
     }
 }
 
+task javadocJar(type: Jar) {
+    classifier = 'javadoc'
+    from javadoc
+}
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+jar {
+    version = '0.0.4-SNAPSHOT'
+    baseName = 'gdpr-consent-framework'
+    group = 'com.yieldlab'
+}
+
+artifacts {
+    archives javadocJar, sourcesJar
+}
+
+version = '0.0.4-SNAPSHOT'
+archivesBaseName = 'gdpr-consent-framework'
+group = 'com.yieldlab'
+
+
 uploadArchives {
     repositories {
         mavenDeployer {
@@ -30,17 +55,8 @@ uploadArchives {
             snapshotRepository(url: "http://nexus:8081/nexus/content/repositories/snapshots") {
                 authentication(userName: username, password: password)
             }
-            pom.version = '0.0.4-SNAPSHOT'
-            pom.artifactId = 'gdpr-consent-framework'
-            pom.groupId = 'com.yieldlab'
         }
     }
-}
-
-jar {
-    version = '0.0.4-SNAPSHOT'
-    baseName = 'gdpr-consent-framework'
-    group = 'com.yieldlab'
 }
 
 dependencies {
