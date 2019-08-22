@@ -1,10 +1,15 @@
 package com.yieldlab.gdpr.vendor;
 
-import java.util.Objects;
-
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({ "id", "name", "description" })
@@ -17,6 +22,9 @@ public class Feature {
 
     @JsonProperty("description")
     private String description = "";
+
+    @JsonIgnore
+    private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
     @JsonProperty("id")
     public int getId() {
@@ -48,6 +56,16 @@ public class Feature {
         this.description = description;
     }
 
+    @JsonAnyGetter
+    public Map<String, Object> getAdditionalProperties() {
+        return this.additionalProperties;
+    }
+
+    @JsonAnySetter
+    public void setAdditionalProperty(String name, Object value) {
+        this.additionalProperties.put(name, value);
+    }
+
     @Override
     public String toString() {
         return "Feature{" + "id=" + id + ", name='" + name + '\'' + ", description='" + description + '\'' + '}';
@@ -60,12 +78,12 @@ public class Feature {
         if (o == null || getClass() != o.getClass())
             return false;
         Feature feature = (Feature) o;
-        return id == feature.id && Objects.equals(name, feature.name)
-                && Objects.equals(description, feature.description);
+        return id == feature.id && Objects.equals(name, feature.name) && Objects.equals(description,
+                feature.description) && Objects.equals(additionalProperties, feature.additionalProperties);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, description);
+        return Objects.hash(id, name, description, additionalProperties);
     }
 }

@@ -15,7 +15,7 @@ repositories {
 
 install {
     repositories.mavenInstaller {
-        pom.version = '0.0.4-SNAPSHOT'
+        pom.version = '0.0.5'
         pom.artifactId = 'gdpr-consent-framework'
         pom.groupId = 'com.yieldlab'
     }
@@ -32,7 +32,7 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
 }
 
 jar {
-    version = '0.0.4-SNAPSHOT'
+    version = '0.0.5'
     baseName = 'gdpr-consent-framework'
     group = 'com.yieldlab'
 }
@@ -41,7 +41,7 @@ artifacts {
     archives javadocJar, sourcesJar, jar
 }
 
-version = '0.0.4-SNAPSHOT'
+version = '0.0.5'
 archivesBaseName = 'gdpr-consent-framework'
 group = 'com.yieldlab'
 
@@ -65,6 +65,7 @@ dependencies {
             "org.hamcrest:java-hamcrest:2.0.0.0"
     )
     compile(
+        "com.conversantmedia.gdpr:consent-string-sdk-java:3.0.2",
         "com.fasterxml.jackson.core:jackson-databind:2.8.5",
         "com.fasterxml.jackson.core:jackson-core:2.8.5",
         "com.fasterxml.jackson.core:jackson-annotations:2.8.5",

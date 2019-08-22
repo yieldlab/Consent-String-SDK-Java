@@ -1,12 +1,17 @@
 package com.yieldlab.gdpr.vendor;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({ "vendorListVersion", "lastUpdated", "purposes", "features", "vendors" })
@@ -22,6 +27,8 @@ public class VendorList {
     private List<Feature> features = new ArrayList<>();
     @JsonProperty("vendors")
     private List<Vendor> vendors = new ArrayList<>();
+    @JsonIgnore
+    private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
     @JsonProperty("vendorListVersion")
     public int getVendorListVersion() {
@@ -73,6 +80,16 @@ public class VendorList {
         this.vendors = vendors;
     }
 
+    @JsonAnyGetter
+    public Map<String, Object> getAdditionalProperties() {
+        return this.additionalProperties;
+    }
+
+    @JsonAnySetter
+    public void setAdditionalProperty(String name, Object value) {
+        this.additionalProperties.put(name, value);
+    }
+
     @Override
     public String toString() {
         return "VendorList{" + "vendorListVersion=" + vendorListVersion + ", lastUpdated='" + lastUpdated + '\''
@@ -87,13 +104,12 @@ public class VendorList {
             return false;
         VendorList that = (VendorList) o;
         return vendorListVersion == that.vendorListVersion && Objects.equals(lastUpdated, that.lastUpdated)
-                && Objects.equals(purposes, that.purposes) && Objects.equals(features, that.features)
-                && Objects.equals(vendors, that.vendors);
+                && Objects.equals(purposes, that.purposes) && Objects.equals(features, that.features) && Objects.equals(
+                vendors, that.vendors) && Objects.equals(additionalProperties, that.additionalProperties);
     }
 
     @Override
     public int hashCode() {
-
-        return Objects.hash(vendorListVersion, lastUpdated, purposes, features, vendors);
+        return Objects.hash(vendorListVersion, lastUpdated, purposes, features, vendors, additionalProperties);
     }
 }

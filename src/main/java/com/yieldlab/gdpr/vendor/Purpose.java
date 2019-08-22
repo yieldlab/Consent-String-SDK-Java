@@ -1,10 +1,15 @@
 package com.yieldlab.gdpr.vendor;
 
-import java.util.Objects;
-
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({ "id", "name", "description" })
@@ -16,7 +21,8 @@ public class Purpose {
     private String name = "";
     @JsonProperty("description")
     private String description = "";
-
+    @JsonIgnore
+    private Map<String, Object> additionalProperties = new HashMap<String, Object>();
     @JsonProperty("id")
     public int getId() {
         return id;
@@ -47,6 +53,16 @@ public class Purpose {
         this.description = description;
     }
 
+    @JsonAnyGetter
+    public Map<String, Object> getAdditionalProperties() {
+        return this.additionalProperties;
+    }
+
+    @JsonAnySetter
+    public void setAdditionalProperty(String name, Object value) {
+        this.additionalProperties.put(name, value);
+    }
+
     @Override
     public String toString() {
         return "Purpose{" + "id=" + id + ", name='" + name + '\'' + ", description='" + description + '\'' + '}';
@@ -59,12 +75,12 @@ public class Purpose {
         if (o == null || getClass() != o.getClass())
             return false;
         Purpose purpose = (Purpose) o;
-        return id == purpose.id && Objects.equals(name, purpose.name)
-                && Objects.equals(description, purpose.description);
+        return id == purpose.id && Objects.equals(name, purpose.name) && Objects.equals(description,
+                purpose.description) && Objects.equals(additionalProperties, purpose.additionalProperties);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, description);
+        return Objects.hash(id, name, description, additionalProperties);
     }
 }
